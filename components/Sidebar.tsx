@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, TrendingUp, Megaphone, Settings, User, X, ChevronLeft, ChevronRight, Brain, Phone, Plug } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, TrendingUp, Megaphone, Settings, User, X, ChevronLeft, ChevronRight, Brain, Phone, Plug, Instagram } from 'lucide-react';
 import { Logo8D } from './Logo8D';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,6 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose, isCollapsed = false, 
 
         <NavItem to="/ai-insights" icon={Brain} label="AI Рекомендации" onClose={onClose} isCollapsed={isCollapsed} />
         <NavItem to="/calls" icon={Phone} label={t('nav.calls')} onClose={onClose} isCollapsed={isCollapsed} />
+        <NavItem to="/instagram" icon={Instagram} label="Instagram" onClose={onClose} isCollapsed={isCollapsed} />
 
         <div className={`my-4 border-t border-white/10 ${isCollapsed ? 'mx-2' : 'mx-1'}`}></div>
 

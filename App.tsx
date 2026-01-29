@@ -11,6 +11,7 @@ import { Settings } from './pages/Settings';
 import { AIInsights } from './pages/AIInsights';
 import { CallsAnalytics } from './pages/CallsAnalytics';
 import { Integrations } from './pages/Integrations';
+import { Instagram } from './pages/Instagram';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +43,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (pathname === '/ai-insights') return 'AI Рекомендации';
     if (pathname === '/calls') return t('nav.calls');
     if (pathname === '/integrations') return t('nav.integrations');
+    if (pathname === '/instagram') return 'Instagram';
     if (pathname === '/settings') return t('nav.settings');
     return 'ShowToday';
   };
@@ -114,6 +116,7 @@ const AppContent: React.FC = () => {
           <Route path="/ai-insights" element={<AIInsights />} />
           <Route path="/calls" element={<CallsAnalytics />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/instagram" element={<Instagram />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>

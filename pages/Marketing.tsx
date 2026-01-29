@@ -23,7 +23,13 @@ import {
   Facebook,
   MessageCircle,
   Share2,
-  Brain
+  Brain,
+  Search,
+  ExternalLink,
+  Library,
+  Eye,
+  Calendar,
+  Filter
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -277,12 +283,83 @@ const getDecisionConfig = (decision: string) => {
 // Курс USD/KZT (можно обновлять через API)
 const USD_KZT_RATE = 520;
 
+// FB Ad Library mock data - конкуренты
+const AD_LIBRARY_DATA = [
+  {
+    id: 'ad-1',
+    advertiser: 'Event Pro KZ',
+    category: 'Праздники и мероприятия',
+    adCount: 45,
+    platforms: ['Facebook', 'Instagram'],
+    status: 'active',
+    startDate: '2025-12-15',
+    impressions: '100K-500K',
+    thumbnail: 'https://picsum.photos/seed/ad1/400/300',
+    previewText: '✨ Организация свадеб мечты! Более 500 успешных мероприятий...',
+    targetingInfo: 'Женщины 25-44, Алматы',
+  },
+  {
+    id: 'ad-2',
+    advertiser: 'Праздник.kz',
+    category: 'Праздники и мероприятия',
+    adCount: 28,
+    platforms: ['Instagram'],
+    status: 'active',
+    startDate: '2026-01-05',
+    impressions: '50K-100K',
+    thumbnail: 'https://picsum.photos/seed/ad2/400/300',
+    previewText: '🎉 Детские праздники от 50 000₸! Аниматоры, декор...',
+    targetingInfo: 'Женщины 28-40, Все города',
+  },
+  {
+    id: 'ad-3',
+    advertiser: 'Wedding Dreams',
+    category: 'Свадьбы',
+    adCount: 67,
+    platforms: ['Facebook', 'Instagram', 'Messenger'],
+    status: 'active',
+    startDate: '2025-11-20',
+    impressions: '500K-1M',
+    thumbnail: 'https://picsum.photos/seed/ad3/400/300',
+    previewText: '💍 Свадьба под ключ в Алматы. Скидка 20% на январь!',
+    targetingInfo: 'Женщины 22-35, Алматы, Астана',
+  },
+  {
+    id: 'ad-4',
+    advertiser: 'Corporate Events Pro',
+    category: 'B2B мероприятия',
+    adCount: 12,
+    platforms: ['Facebook'],
+    status: 'active',
+    startDate: '2026-01-10',
+    impressions: '10K-50K',
+    thumbnail: 'https://picsum.photos/seed/ad4/400/300',
+    previewText: '🏢 Корпоративы для компаний от 50 человек. Под ключ!',
+    targetingInfo: 'Мужчины/Женщины 30-55, Бизнес интересы',
+  },
+  {
+    id: 'ad-5',
+    advertiser: 'PartyTime.kz',
+    category: 'Развлечения',
+    adCount: 89,
+    platforms: ['Instagram', 'Facebook'],
+    status: 'inactive',
+    startDate: '2025-10-01',
+    impressions: '1M+',
+    thumbnail: 'https://picsum.photos/seed/ad5/400/300',
+    previewText: '🔥 Аренда площадок для вечеринок! VIP зоны...',
+    targetingInfo: 'Мужчины/Женщины 21-35',
+  },
+];
+
 export const Marketing: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useLanguage();
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [isAIPopupOpen, setIsAIPopupOpen] = useState(false);
   const [currency, setCurrency] = useState<'KZT' | 'USD'>('KZT');
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'adlibrary'>('campaigns');
+  const [adSearchQuery, setAdSearchQuery] = useState('');
 
   // Конвертация валюты
   const formatMoney = (amountKZT: number) => {
@@ -363,6 +440,206 @@ export const Marketing: React.FC = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className={`flex gap-2 p-1 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+        <button
+          onClick={() => setActiveTab('campaigns')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'campaigns'
+              ? 'bg-primary text-black'
+              : isDark
+                ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          Мои кампании
+        </button>
+        <button
+          onClick={() => setActiveTab('adlibrary')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'adlibrary'
+              ? 'bg-[#1877F2] text-white'
+              : isDark
+                ? 'text-gray-400 hover:text-white hover:bg-white/5'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+          }`}
+        >
+          <Facebook className="w-4 h-4" />
+          FB Ad Library
+        </button>
+      </div>
+
+      {/* AD LIBRARY TAB */}
+      {activeTab === 'adlibrary' && (
+        <div className="space-y-6">
+          {/* Ad Library Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-6 rounded-2xl border ${isDark ? 'bg-[#1877F2]/10 border-[#1877F2]/20' : 'bg-blue-50 border-blue-200'}`}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-xl bg-[#1877F2]">
+                <Facebook className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  Facebook Ad Library
+                </h2>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                  Анализ рекламы конкурентов в вашей нише
+                </p>
+              </div>
+              <a
+                href="https://www.facebook.com/ads/library/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg text-sm font-medium hover:bg-[#166FE5]"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Открыть Ad Library
+              </a>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-500' : 'text-slate-400'}`} />
+              <input
+                type="text"
+                placeholder="Поиск по рекламодателям, ключевым словам..."
+                value={adSearchQuery}
+                onChange={(e) => setAdSearchQuery(e.target.value)}
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
+                  isDark
+                    ? 'bg-white/5 border-white/10 text-white placeholder:text-gray-500'
+                    : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                } focus:outline-none focus:ring-2 focus:ring-[#1877F2]/50`}
+              />
+            </div>
+          </motion.div>
+
+          {/* Ad Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {AD_LIBRARY_DATA.filter(ad =>
+              adSearchQuery === '' ||
+              ad.advertiser.toLowerCase().includes(adSearchQuery.toLowerCase()) ||
+              ad.category.toLowerCase().includes(adSearchQuery.toLowerCase())
+            ).map((ad, index) => (
+              <motion.div
+                key={ad.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`rounded-2xl border overflow-hidden ${
+                  isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'
+                }`}
+              >
+                {/* Ad Preview Image */}
+                <div className="relative aspect-video">
+                  <img
+                    src={ad.thumbnail}
+                    alt={ad.advertiser}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {ad.platforms.map((platform) => (
+                      <span
+                        key={platform}
+                        className="px-2 py-1 bg-black/60 text-white text-xs rounded-full"
+                      >
+                        {platform}
+                      </span>
+                    ))}
+                  </div>
+                  <div className={`absolute bottom-2 left-2 px-2 py-1 rounded-full text-xs font-medium ${
+                    ad.status === 'active' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
+                  }`}>
+                    {ad.status === 'active' ? 'Активна' : 'Неактивна'}
+                  </div>
+                </div>
+
+                {/* Ad Info */}
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {ad.advertiser}
+                    </h3>
+                    <span className={`text-xs px-2 py-1 rounded-full ${isDark ? 'bg-white/10 text-gray-400' : 'bg-slate-100 text-slate-600'}`}>
+                      {ad.adCount} объявлений
+                    </span>
+                  </div>
+
+                  <p className={`text-sm mb-3 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                    {ad.previewText}
+                  </p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Eye className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-slate-400'}`} />
+                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                        Охват: {ad.impressions}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-slate-400'}`} />
+                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                        {ad.targetingInfo}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-slate-400'}`} />
+                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                        Запущена: {ad.startDate}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={`mt-3 pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+                    <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                      Категория: {ad.category}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* AI Insights for Ad Library */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-[#1A1A1A] to-[#333] p-6 rounded-2xl text-white shadow-lg"
+          >
+            <div className="flex items-start gap-4">
+              <div className="bg-[#1877F2] p-3 rounded-full">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-[#1877F2] mb-3">AI Анализ конкурентов</h3>
+                <ul className="space-y-3 text-sm text-slate-300 leading-relaxed">
+                  <li className="flex gap-2">
+                    <span className="text-green-500">↑</span>
+                    <span><strong className="text-green-400">Тренд:</strong> Конкуренты активно используют Reels-формат — ROI выше на 40%.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-yellow-500">!</span>
+                    <span><strong className="text-yellow-400">Возможность:</strong> Wedding Dreams тратит 500K-1M охвата — можно перехватить их аудиторию.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-blue-500">→</span>
+                    <span><strong className="text-blue-400">Рекомендация:</strong> Добавьте объявления с акциями — у 3 из 5 конкурентов есть скидки.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* CAMPAIGNS TAB */}
+      {activeTab === 'campaigns' && (
+        <>
       {/* Summary Stats - Funnel focused */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <motion.div
@@ -842,6 +1119,8 @@ export const Marketing: React.FC = () => {
         onClose={() => setIsAIPopupOpen(false)}
         context="marketing"
       />
+        </>
+      )}
     </div>
   );
 };
