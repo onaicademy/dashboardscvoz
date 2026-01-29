@@ -12,7 +12,8 @@ import {
   Target,
   Users,
   Image,
-  MapPin
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -43,21 +44,57 @@ export const AIInsights: React.FC = () => {
   const [selectedPriority, setSelectedPriority] = useState<Priority | 'all'>('all');
   const [selectedType, setSelectedType] = useState<RecommendationType | 'all'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [completedActions, setCompletedActions] = useState<Set<string>>(new Set());
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState<{id: string; type: string; title: string} | null>(null);
 
   const filteredRecommendations = MOCK_RECOMMENDATIONS.filter((rec) => {
     if (selectedPriority !== 'all' && rec.priority !== selectedPriority) return false;
     if (selectedType !== 'all' && rec.type !== selectedType) return false;
+    // Скрываем выполненные рекомендации
+    if (completedActions.has(rec.id)) return false;
     return true;
   });
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 2000);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      // Сброс выполненных для демонстрации
+      setCompletedActions(new Set());
+    }, 2000);
   };
 
   const handleAction = (actionId: string) => {
-    console.log('Action triggered:', actionId);
-    // TODO: Implement actions
+    // Находим рекомендацию по типу
+    const rec = MOCK_RECOMMENDATIONS.find(r => r.type === actionId);
+    if (rec) {
+      setShowConfirmation({ id: rec.id, type: actionId, title: rec.title });
+    }
+  };
+
+  const confirmAction = () => {
+    if (!showConfirmation) return;
+
+    setActionInProgress(showConfirmation.id);
+    setShowConfirmation(null);
+
+    // Имитация выполнения действия
+    setTimeout(() => {
+      setCompletedActions(prev => new Set([...prev, showConfirmation.id]));
+      setActionInProgress(null);
+    }, 1500);
+  };
+
+  const getActionDescription = (type: string) => {
+    switch (type) {
+      case 'BUDGET_DRAIN': return 'Кампания будет остановлена. Вы сможете перезапустить её после корректировки таргетинга.';
+      case 'MANAGER_UNDERPERFORM': return 'Будет создана задача для HR: провести беседу с менеджером и выяснить причины.';
+      case 'SCALE_OPPORTUNITY': return 'Бюджет кампании будет увеличен на 30% для масштабирования.';
+      case 'CREATIVE_FATIGUE': return 'Креатив будет помечен для обновления. Дизайнеру придёт уведомление.';
+      case 'SLOW_RESPONSE': return 'Менеджеру будет отправлено напоминание о необходимости быстрых ответов.';
+      default: return 'Действие будет выполнено и записано в журнал изменений.';
+    }
   };
 
   // Stats
@@ -321,6 +358,86 @@ export const AIInsights: React.FC = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Action Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowConfirmation(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`max-w-md w-full rounded-2xl p-6 ${isDark ? 'bg-[#1A1A1A]' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-3 rounded-xl ${isDark ? 'bg-yellow-500/20' : 'bg-yellow-100'}`}>
+                  <Zap className="w-6 h-6 text-yellow-500" />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    Подтвердите действие
+                  </h3>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                    {showConfirmation.title}
+                  </p>
+                </div>
+              </div>
+
+              <p className={`text-sm mb-6 ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
+                {getActionDescription(showConfirmation.type)}
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmation(null)}
+                  className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                    isDark
+                      ? 'bg-white/10 text-white hover:bg-white/20'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={confirmAction}
+                  className="flex-1 px-4 py-3 rounded-xl font-medium bg-primary text-black hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Выполнить
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action In Progress Toast */}
+      <AnimatePresence>
+        {actionInProgress && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 right-6 z-50"
+          >
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg ${
+              isDark ? 'bg-[#1A1A1A] border border-white/10' : 'bg-white border border-slate-200'
+            }`}>
+              <RefreshCw className="w-5 h-5 text-primary animate-spin" />
+              <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Выполняется действие...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
