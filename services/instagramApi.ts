@@ -57,25 +57,41 @@ const handleApiError = (error: any) => {
 export const getInstagramAccountId = async (): Promise<string | null> => {
   try {
     // First, get user's Facebook Pages
-    const pagesResponse = await fetch(
-      `${BASE_URL}/me/accounts?fields=id,name,instagram_business_account&access_token=${ACCESS_TOKEN}`
-    );
+    const url = `${BASE_URL}/me/accounts?fields=id,name,instagram_business_account&access_token=${ACCESS_TOKEN}`;
+    console.log('🔗 [Instagram API] Fetching FB Pages...');
+
+    const pagesResponse = await fetch(url);
     const pagesData = await pagesResponse.json();
 
+    console.log('📦 [Instagram API] FB Pages response:', JSON.stringify(pagesData, null, 2));
+
     if (pagesData.error) {
+      console.error('❌ [Instagram API] FB Pages error:', pagesData.error);
       handleApiError(pagesData.error);
       return null;
     }
+
+    if (!pagesData.data || pagesData.data.length === 0) {
+      console.error('❌ [Instagram API] No FB Pages found. Make sure token has pages_show_list permission.');
+      return null;
+    }
+
+    console.log('📋 [Instagram API] Found', pagesData.data.length, 'FB Pages');
 
     // Find page with Instagram Business Account
     const pageWithInstagram = pagesData.data?.find((page: any) => page.instagram_business_account);
 
     if (pageWithInstagram?.instagram_business_account?.id) {
+      console.log('✅ [Instagram API] Found Instagram Business Account:', pageWithInstagram.instagram_business_account.id);
+      console.log('   Linked to FB Page:', pageWithInstagram.name);
       return pageWithInstagram.instagram_business_account.id;
     }
 
+    console.error('❌ [Instagram API] None of the FB Pages have Instagram Business Account linked');
+    console.log('   Pages found:', pagesData.data.map((p: any) => p.name).join(', '));
     return null;
   } catch (error) {
+    console.error('❌ [Instagram API] Network/fetch error:', error);
     handleApiError(error);
     return null;
   }
@@ -190,13 +206,19 @@ export const getMediaInsights = async (
 
 // Combined function to get all Instagram data
 export const fetchAllInstagramData = async () => {
+  console.log('🔄 [Instagram API] Starting data fetch...');
+
   try {
+    // Step 1: Get Account ID
+    console.log('📍 [Instagram API] Step 1: Getting Instagram Account ID...');
     const accountId = await getInstagramAccountId();
+    console.log('📍 [Instagram API] Account ID result:', accountId);
 
     if (!accountId) {
+      console.error('❌ [Instagram API] Failed to get account ID - check token and FB Page linkage');
       return {
         success: false,
-        error: 'Не удалось получить ID Instagram аккаунта. Проверьте токен.',
+        error: 'Не удалось получить ID Instagram аккаунта. Убедитесь что Instagram привязан к Facebook Page.',
         profile: null,
         media: [],
         stories: [],
@@ -204,20 +226,40 @@ export const fetchAllInstagramData = async () => {
       };
     }
 
+    // Step 2: Fetch profile, media, stories in parallel
+    console.log('📍 [Instagram API] Step 2: Fetching profile, media, stories...');
     const [profile, media, stories] = await Promise.all([
       getInstagramProfile(accountId),
       getInstagramMedia(accountId, 25),
       getInstagramStories(accountId)
     ]);
 
+    console.log('📍 [Instagram API] Profile result:', profile);
+    console.log('📍 [Instagram API] Media count:', media.length);
+    console.log('📍 [Instagram API] Stories count:', stories.length);
+
     // Get insights separately (might fail for some accounts)
     let insights: InstagramInsight[] = [];
     try {
       insights = await getInstagramInsights(accountId, ['impressions', 'reach', 'profile_views'], 'day');
+      console.log('📍 [Instagram API] Insights count:', insights.length);
     } catch (e) {
-      console.log('Insights not available for this account');
+      console.log('⚠️ [Instagram API] Insights not available for this account');
     }
 
+    if (!profile) {
+      console.error('❌ [Instagram API] Profile is null - API returned no data');
+      return {
+        success: false,
+        error: 'Профиль не найден. Проверьте права доступа токена.',
+        profile: null,
+        media: [],
+        stories: [],
+        insights: []
+      };
+    }
+
+    console.log('✅ [Instagram API] Successfully fetched all data for @' + profile.username);
     return {
       success: true,
       accountId,
@@ -227,6 +269,7 @@ export const fetchAllInstagramData = async () => {
       insights
     };
   } catch (error) {
+    console.error('❌ [Instagram API] Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

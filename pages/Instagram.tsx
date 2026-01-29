@@ -430,13 +430,37 @@ export const Instagram: React.FC = () => {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* Demo Data Warning */}
+          {!apiProfile && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-3 rounded-xl border-2 border-dashed ${
+                isDark ? 'bg-orange-500/10 border-orange-500/30' : 'bg-orange-50 border-orange-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-500" />
+                <span className={`font-bold text-orange-500`}>DEMO DATA</span>
+                <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                  — Ниже показаны демонстрационные данные. Откройте консоль браузера (F12) чтобы увидеть ответ API.
+                </span>
+              </div>
+            </motion.div>
+          )}
+
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}
+              className={`p-4 rounded-xl border relative ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}
             >
+              {!apiProfile && (
+                <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-500 font-bold">
+                  DEMO
+                </span>
+              )}
               <Users className={`w-5 h-5 mb-2 ${isDark ? 'text-gray-400' : 'text-slate-500'}`} />
               <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {displayStats.followers.toLocaleString()}
