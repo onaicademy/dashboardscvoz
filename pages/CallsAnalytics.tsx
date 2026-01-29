@@ -125,6 +125,7 @@ const MOCK_CALLS = [
     phone: '+7 705 123 4567',
     clientName: 'Асель Муратова',
     duration: 245,
+    waitTime: 3, // секунды до ответа
     status: 'completed' as const,
     source: 'Instagram Ads',
     sourceIcon: Instagram,
@@ -165,6 +166,7 @@ const MOCK_CALLS = [
     phone: '+7 707 234 5678',
     clientName: 'Тимур Касымов',
     duration: 180,
+    waitTime: 0, // исходящий звонок
     status: 'completed' as const,
     source: 'Google Ads',
     sourceIcon: Globe,
@@ -205,6 +207,7 @@ const MOCK_CALLS = [
     phone: '+7 701 345 6789',
     clientName: 'Неизвестно',
     duration: 0,
+    waitTime: 45, // не ответили за 45 сек - пропущен
     status: 'missed' as const,
     source: 'WhatsApp',
     sourceIcon: MessageCircle,
@@ -227,6 +230,7 @@ const MOCK_CALLS = [
     phone: '+7 717 456 7890',
     clientName: 'ТОО "Астана Групп"',
     duration: 420,
+    waitTime: 2, // быстрый ответ
     status: 'completed' as const,
     source: 'Рекомендации',
     sourceIcon: User,
@@ -256,6 +260,7 @@ const MOCK_CALLS = [
     phone: '+7 708 567 8901',
     clientName: 'Жанна Смагулова',
     duration: 95,
+    waitTime: 0, // исходящий
     status: 'completed' as const,
     source: 'Instagram Ads',
     sourceIcon: Instagram,
@@ -296,6 +301,7 @@ const MOCK_CALLS = [
     phone: '+7 702 111 2222',
     clientName: 'Алия Серикова',
     duration: 312,
+    waitTime: 5, // 5 секунд
     status: 'completed' as const,
     source: 'Instagram Ads',
     sourceIcon: Instagram,
@@ -336,6 +342,7 @@ const MOCK_CALLS = [
     phone: '+7 700 333 4444',
     clientName: 'Неизвестно',
     duration: 0,
+    waitTime: 60, // звонил минуту - не ответили
     status: 'missed' as const,
     source: 'Google Ads',
     sourceIcon: Globe,
@@ -372,6 +379,7 @@ const MOCK_CALLS = [
     phone: '+7 771 555 6666',
     clientName: 'Ержан Муканов',
     duration: 156,
+    waitTime: 0, // исходящий
     status: 'completed' as const,
     source: 'WhatsApp',
     sourceIcon: MessageCircle,
@@ -401,6 +409,7 @@ const MOCK_CALLS = [
     phone: '+7 747 777 8888',
     clientName: 'Гульнара Ахметова',
     duration: 78,
+    waitTime: 8, // 8 секунд
     status: 'completed' as const,
     source: 'Instagram Ads',
     sourceIcon: Instagram,
@@ -441,6 +450,7 @@ const MOCK_CALLS = [
     phone: '+7 778 999 0000',
     clientName: 'ИП "Нурлан"',
     duration: 520,
+    waitTime: 4, // 4 секунды - быстро
     status: 'completed' as const,
     source: 'Рекомендации',
     sourceIcon: User,
@@ -585,22 +595,31 @@ export const CallsAnalytics: React.FC = () => {
   }, [typeFilter, managerFilter, dateRange, searchQuery]);
 
   // Recalculate stats based on filtered calls
-  const callStats = useMemo(() => ({
-    total: filteredCalls.length,
-    incoming: filteredCalls.filter(c => c.type === 'incoming').length,
-    outgoing: filteredCalls.filter(c => c.type === 'outgoing').length,
-    missed: filteredCalls.filter(c => c.type === 'missed').length,
-    avgDuration: filteredCalls.filter(c => c.duration > 0).length > 0
-      ? Math.round(filteredCalls.filter(c => c.duration > 0).reduce((sum, c) => sum + c.duration, 0) / filteredCalls.filter(c => c.duration > 0).length)
-      : 0,
-    avgQuality: filteredCalls.filter(c => c.qualityScore).length > 0
-      ? (filteredCalls.filter(c => c.qualityScore).reduce((sum, c) => sum + (c.qualityScore || 0), 0) / filteredCalls.filter(c => c.qualityScore).length).toFixed(1)
-      : '—',
-    totalRevenue: filteredCalls.filter(c => c.dealAmount).reduce((sum, c) => sum + (c.dealAmount || 0), 0),
-    conversionRate: filteredCalls.filter(c => c.status === 'completed').length > 0
-      ? ((filteredCalls.filter(c => c.dealAmount).length / filteredCalls.filter(c => c.status === 'completed').length) * 100).toFixed(0)
-      : '0',
-  }), [filteredCalls]);
+  const callStats = useMemo(() => {
+    const incomingCalls = filteredCalls.filter(c => c.type === 'incoming');
+    const answeredIncoming = incomingCalls.filter(c => c.status === 'completed' && c.waitTime !== undefined);
+    const avgWaitTime = answeredIncoming.length > 0
+      ? Math.round(answeredIncoming.reduce((sum, c) => sum + (c.waitTime || 0), 0) / answeredIncoming.length)
+      : 0;
+
+    return {
+      total: filteredCalls.length,
+      incoming: incomingCalls.length,
+      outgoing: filteredCalls.filter(c => c.type === 'outgoing').length,
+      missed: filteredCalls.filter(c => c.type === 'missed').length,
+      avgDuration: filteredCalls.filter(c => c.duration > 0).length > 0
+        ? Math.round(filteredCalls.filter(c => c.duration > 0).reduce((sum, c) => sum + c.duration, 0) / filteredCalls.filter(c => c.duration > 0).length)
+        : 0,
+      avgWaitTime, // среднее время ответа на входящие
+      avgQuality: filteredCalls.filter(c => c.qualityScore).length > 0
+        ? (filteredCalls.filter(c => c.qualityScore).reduce((sum, c) => sum + (c.qualityScore || 0), 0) / filteredCalls.filter(c => c.qualityScore).length).toFixed(1)
+        : '—',
+      totalRevenue: filteredCalls.filter(c => c.dealAmount).reduce((sum, c) => sum + (c.dealAmount || 0), 0),
+      conversionRate: filteredCalls.filter(c => c.status === 'completed').length > 0
+        ? ((filteredCalls.filter(c => c.dealAmount).length / filteredCalls.filter(c => c.status === 'completed').length) * 100).toFixed(0)
+        : '0',
+    };
+  }, [filteredCalls]);
 
   const getCallIcon = (type: string) => {
     switch (type) {
@@ -739,6 +758,29 @@ export const CallsAnalytics: React.FC = () => {
           <Clock className={`w-5 h-5 mb-2 ${isDark ? 'text-gray-400' : 'text-slate-500'}`} />
           <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{formatDuration(callStats.avgDuration)}</p>
           <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Ср. время</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+          className={`p-4 rounded-xl border ${
+            callStats.avgWaitTime <= 5
+              ? isDark ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200'
+              : callStats.avgWaitTime <= 15
+                ? isDark ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-yellow-50 border-yellow-200'
+                : isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'
+          }`}
+        >
+          <PhoneIncoming className={`w-5 h-5 mb-2 ${
+            callStats.avgWaitTime <= 5 ? 'text-green-500' :
+            callStats.avgWaitTime <= 15 ? 'text-yellow-500' : 'text-red-500'
+          }`} />
+          <p className={`text-2xl font-bold ${
+            callStats.avgWaitTime <= 5 ? 'text-green-500' :
+            callStats.avgWaitTime <= 15 ? 'text-yellow-500' : 'text-red-500'
+          }`}>{callStats.avgWaitTime}с</p>
+          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Ср. ответ</p>
         </motion.div>
 
         <motion.div
@@ -987,6 +1029,7 @@ export const CallsAnalytics: React.FC = () => {
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Контакт</th>
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Источник</th>
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Менеджер</th>
+                <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Ответ</th>
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Длит.</th>
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Качество</th>
                 <th className={`px-4 py-3 text-left text-xs font-medium ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Сделка</th>
@@ -1034,6 +1077,23 @@ export const CallsAnalytics: React.FC = () => {
                       </td>
                       <td className={`px-4 py-3 text-sm ${isDark ? 'text-gray-300' : 'text-slate-600'}`}>
                         {call.manager}
+                      </td>
+                      <td className="px-4 py-3">
+                        {call.type === 'incoming' || call.type === 'missed' ? (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            call.type === 'missed'
+                              ? 'bg-red-500/10 text-red-500'
+                              : (call.waitTime || 0) <= 5
+                                ? 'bg-green-500/10 text-green-500'
+                                : (call.waitTime || 0) <= 15
+                                  ? 'bg-yellow-500/10 text-yellow-500'
+                                  : 'bg-orange-500/10 text-orange-500'
+                          }`}>
+                            {call.type === 'missed' ? `${call.waitTime || 0}с ❌` : `${call.waitTime || 0}с`}
+                          </span>
+                        ) : (
+                          <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>—</span>
+                        )}
                       </td>
                       <td className={`px-4 py-3 text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {call.duration > 0 ? formatDuration(call.duration) : '—'}

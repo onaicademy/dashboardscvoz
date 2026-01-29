@@ -41,6 +41,8 @@ export interface ChatAnalysis {
   categoryScores: CategoryScore[];
   messages: Message[];
   source: string;
+  responseTimeAvg?: string; // e.g., "47 сек", "5 мин 20 сек"
+  firstResponseTime?: string; // e.g., "32 сек", "12 мин"
 }
 
 export interface MarketingChannel {
