@@ -567,7 +567,7 @@ export function formatCurrency(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return value.toFixed(1) + '%';
+  return (value ?? 0).toFixed(1) + '%';
 }
 
 export function formatNumber(value: number): string {

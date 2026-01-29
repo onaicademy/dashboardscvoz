@@ -51,7 +51,7 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({
     `}>
       {config.icon}
       <span className="font-medium">
-        {config.prefix}{value.toFixed(1)}%
+        {config.prefix}{(value ?? 0).toFixed(1)}%
       </span>
     </div>
   );

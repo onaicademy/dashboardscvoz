@@ -78,7 +78,7 @@ export const LeadSourceCard: React.FC<LeadSourceCardProps> = ({
             source.roi >= 100 ? 'text-yellow-400' :
             'text-red-400'
           }`}>
-            {source.roi >= 0 ? '+' : ''}{source.roi.toFixed(0)}%
+            {(source.roi ?? 0) >= 0 ? '+' : ''}{(source.roi ?? 0).toFixed(0)}%
           </p>
         </div>
         <div className={`text-center p-2 rounded-lg ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>

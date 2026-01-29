@@ -15,8 +15,8 @@ interface ManagerCardProps {
 
 // Детальные данные для менеджера (в реальности - из API)
 const getManagerDetails = (manager: Manager) => {
-  const conversionRate = manager.metrics.totalDeals / manager.metrics.totalLeads * 100;
-  const avgCheck = manager.metrics.totalRevenue / manager.metrics.totalDeals;
+  const conversionRate = manager.metrics.totalLeads > 0 ? (manager.metrics.totalDeals / manager.metrics.totalLeads * 100) : 0;
+  const avgCheck = manager.metrics.totalDeals > 0 ? (manager.metrics.totalRevenue / manager.metrics.totalDeals) : 0;
 
   return {
     weeklyStats: [
