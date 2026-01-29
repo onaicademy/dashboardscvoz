@@ -1,7 +1,7 @@
 // Instagram Graph API Service
 // Using Facebook Graph API to access Instagram Business Account data
 
-const ACCESS_TOKEN = 'EAAPVZCSfHj0YBQtTEbe71X64GISmLy6wQkw12JuiUIz56ZCKTahSllrfaqSn37sxNUNicvcgEZCwpUgr9ZAMV7k8wfTXiFviPQ0vUGYAUvF0OkAz2M1uK8laWLMpLdesWEsZCeSZAileFBcfIkg1sDrcLPyQGJdqvKhLD4kjvZAPW6ZBkjOrkldcc3S6ikLW2P3CYWsywNwMNYY0yTmFlLMhhVJtRiPtArYKZADimZByiEHGKubbSUEMG90lKL5S09QhA0bxfP055BQtFVghWOMYW3CM4J';
+const ACCESS_TOKEN = 'EAAPVZCSfHj0YBQkZCje6GOxxbMhcxeMNonyWNcUVlhpompZB89vBUgITthmrM2Nn0Ad6zIqZAdWaUjZBjLvcf4rMSZA4QH8p3ZC9HZBDZBVEY5XC2rgrVZCJihPtuxHbS9fWOqByGButeyquEuYjtCithHFPBHc5pvrtFHV6D0VoB7sngCd2ziv0uT33KVxsZC6JSCYMk7OLSLnQx6S0qIuJ2uZAxbvZCVOpcgCcKuNeNPQZDZD';
 const API_VERSION = 'v18.0';
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 

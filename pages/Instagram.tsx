@@ -31,7 +31,7 @@ import { fetchAllInstagramData, InstagramProfile, InstagramMedia } from '../serv
 const INSTAGRAM_CONFIG = {
   appId: '1079708200963910',
   appSecret: '48a635657fd97b73afc817d95a1f9dff',
-  accessToken: 'EAAPVZCSfHj0YBQtTEbe71X64GISmLy6wQkw12JuiUIz56ZCKTahSllrfaqSn37sxNUNicvcgEZCwpUgr9ZAMV7k8wfTXiFviPQ0vUGYAUvF0OkAz2M1uK8laWLMpLdesWEsZCeSZAileFBcfIkg1sDrcLPyQGJdqvKhLD4kjvZAPW6ZBkjOrkldcc3S6ikLW2P3CYWsywNwMNYY0yTmFlLMhhVJtRiPtArYKZADimZByiEHGKubbSUEMG90lKL5S09QhA0bxfP055BQtFVghWOMYW3CM4J',
+  accessToken: 'EAAPVZCSfHj0YBQkZCje6GOxxbMhcxeMNonyWNcUVlhpompZB89vBUgITthmrM2Nn0Ad6zIqZAdWaUjZBjLvcf4rMSZA4QH8p3ZC9HZBDZBVEY5XC2rgrVZCJihPtuxHbS9fWOqByGButeyquEuYjtCithHFPBHc5pvrtFHV6D0VoB7sngCd2ziv0uT33KVxsZC6JSCYMk7OLSLnQx6S0qIuJ2uZAxbvZCVOpcgCcKuNeNPQZDZD',
   // Token generation URL
   tokenUrl: 'https://developers.facebook.com/tools/explorer/',
   graphApiVersion: 'v18.0',
