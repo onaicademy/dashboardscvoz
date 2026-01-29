@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Smile, MessageCircle, CheckCircle, TrendingUp, Play, Users, Target, Sparkles, DollarSign, Filter, X, ChevronDown, Calendar, Radio } from 'lucide-react';
+import { Smile, MessageCircle, CheckCircle, TrendingUp, Play, Users, Target, Sparkles, DollarSign, Filter, X, ChevronDown, Calendar, Radio, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MOCK_CHATS } from '../services/mockData';
 import {
@@ -12,6 +12,15 @@ import {
   FunnelChannel
 } from '../services/scoringData';
 import { MOCK_TRAFFIC_TEAMS } from '../services/trafficTeamData';
+import {
+  BRANCHES,
+  CityCode,
+  getBranchFunnel,
+  getBranchManagers,
+  getBranchRecommendations,
+  getBranchLeadSources,
+  getBranchStats
+} from '../services/branchData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -82,8 +91,9 @@ export const Dashboard: React.FC = () => {
   const { isDark } = useTheme();
   const { t } = useLanguage();
   const [funnelFilter, setFunnelFilter] = useState<FunnelFilter>({});
-  const [showFilterDropdown, setShowFilterDropdown] = useState<'manager' | 'team' | 'channel' | null>(null);
+  const [showFilterDropdown, setShowFilterDropdown] = useState<'manager' | 'team' | 'channel' | 'city' | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<FunnelChannel>('all');
+  const [selectedCity, setSelectedCity] = useState<CityCode>('all');
 
   // Date Range state (default: last 7 days)
   const [dateRange, setDateRange] = useState<DateRange>(() => {
@@ -93,26 +103,35 @@ export const Dashboard: React.FC = () => {
     return { startDate: start, endDate: end };
   });
 
-  // Calculate totals based on filter
+  // Get data based on selected city
+  const cityFunnel = useMemo(() => getBranchFunnel(selectedCity), [selectedCity]);
+  const cityManagers = useMemo(() => getBranchManagers(selectedCity), [selectedCity]);
+  const cityRecommendations = useMemo(() => getBranchRecommendations(selectedCity), [selectedCity]);
+  const cityLeadSources = useMemo(() => getBranchLeadSources(selectedCity), [selectedCity]);
+  const cityStats = useMemo(() => getBranchStats(selectedCity), [selectedCity]);
+  const selectedBranch = BRANCHES.find(b => b.code === selectedCity);
+
+  // Calculate totals based on filter (uses city data)
   const filteredManagers = useMemo(() => {
+    const baseManagers = cityManagers.length > 0 ? cityManagers : MOCK_MANAGERS;
     if (funnelFilter.managerId) {
-      return MOCK_MANAGERS.filter(m => m.id === funnelFilter.managerId);
+      return baseManagers.filter(m => m.id === funnelFilter.managerId);
     }
     if (funnelFilter.trafficTeamId) {
       const team = MOCK_TRAFFIC_TEAMS.find(t => t.id === funnelFilter.trafficTeamId);
       if (team) {
-        const memberIds = team.members.map(m => m.id);
-        // For demo, we show managers as if they're connected to traffic teams
-        return MOCK_MANAGERS.slice(0, team.members.length);
+        return baseManagers.slice(0, team.members.length);
       }
     }
-    return MOCK_MANAGERS;
-  }, [funnelFilter]);
+    return baseManagers;
+  }, [funnelFilter, cityManagers]);
 
-  // Filtered funnel data (simplified - in production would recalculate from actual data)
+  // Filtered funnel data (uses city data)
   const filteredFunnel = useMemo(() => {
-    // First check channel filter
-    let baseFunnel = MOCK_FUNNEL;
+    // Use city funnel as base
+    let baseFunnel = cityFunnel;
+
+    // If channel filter is set, use channel data instead
     if (selectedChannel !== 'all') {
       const channelData = FUNNEL_BY_CHANNEL.find(c => c.channel === selectedChannel);
       if (channelData) {
@@ -124,17 +143,26 @@ export const Dashboard: React.FC = () => {
     if (!funnelFilter.managerId && !funnelFilter.trafficTeamId) {
       return baseFunnel;
     }
-    const ratio = filteredManagers.length / MOCK_MANAGERS.length;
+    const baseManagerCount = cityManagers.length > 0 ? cityManagers.length : MOCK_MANAGERS.length;
+    const ratio = filteredManagers.length / baseManagerCount;
     return baseFunnel.map(stage => ({
       ...stage,
       count: Math.round(stage.count * ratio),
       value: Math.round(stage.value * ratio),
       spend: Math.round((stage.spend || 0) * ratio)
     }));
-  }, [funnelFilter, filteredManagers, selectedChannel]);
+  }, [funnelFilter, filteredManagers, selectedChannel, cityFunnel, cityManagers]);
 
-  // Calculate channel spend/revenue
+  // Calculate channel/city spend/revenue
   const channelStats = useMemo(() => {
+    // If city is selected, use city stats
+    if (selectedCity !== 'all' && selectedChannel === 'all') {
+      const funnelSpend = cityFunnel.reduce((sum, s) => sum + (s.spend || 0), 0);
+      const funnelRevenue = cityFunnel.find(s => s.stage === 'closed')?.value || 0;
+      const roi = funnelSpend > 0 ? ((funnelRevenue - funnelSpend) / funnelSpend * 100).toFixed(0) : '0';
+      return { spend: funnelSpend, revenue: funnelRevenue, roi };
+    }
+
     if (selectedChannel === 'all') {
       const totalSpend = FUNNEL_BY_CHANNEL.reduce((sum, c) => sum + c.totalSpend, 0);
       const totalRevenue = FUNNEL_BY_CHANNEL.reduce((sum, c) => sum + c.totalRevenue, 0);
@@ -146,30 +174,129 @@ export const Dashboard: React.FC = () => {
       return { spend: channelData.totalSpend, revenue: channelData.totalRevenue, roi };
     }
     return { spend: 0, revenue: 0, roi: '0' };
-  }, [selectedChannel]);
+  }, [selectedChannel, selectedCity, cityFunnel]);
 
-  const totalRevenue = filteredManagers.reduce((sum, m) => sum + m.metrics.totalRevenue, 0);
-  const totalLeads = filteredManagers.reduce((sum, m) => sum + m.metrics.totalLeads, 0);
-  const totalDeals = filteredManagers.reduce((sum, m) => sum + m.metrics.totalDeals, 0);
+  // Use city stats when city is selected, otherwise calculate from managers
+  const totalRevenue = selectedCity !== 'all' ? cityStats.revenue : filteredManagers.reduce((sum, m) => sum + m.metrics.totalRevenue, 0);
+  const totalLeads = selectedCity !== 'all' ? cityStats.leads : filteredManagers.reduce((sum, m) => sum + m.metrics.totalLeads, 0);
+  const totalDeals = selectedCity !== 'all' ? cityStats.deals : filteredManagers.reduce((sum, m) => sum + m.metrics.totalDeals, 0);
   const avgConversion = totalLeads > 0 ? (totalDeals / totalLeads * 100).toFixed(1) : '0';
 
   const clearFilters = () => {
     setFunnelFilter({});
     setSelectedChannel('all');
+    setSelectedCity('all');
     setShowFilterDropdown(null);
   };
 
-  const hasActiveFilter = funnelFilter.managerId || funnelFilter.trafficTeamId || selectedChannel !== 'all';
+  const hasActiveFilter = funnelFilter.managerId || funnelFilter.trafficTeamId || selectedChannel !== 'all' || selectedCity !== 'all';
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
 
-      {/* Header with date picker and action button */}
+      {/* Header with city selector, date picker and action button */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-            {t('dashboard.subtitle')}
-          </p>
+        <div className="flex items-center gap-4">
+          {/* City Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterDropdown(showFilterDropdown === 'city' ? null : 'city')}
+              className={`
+                flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all
+                ${selectedCity !== 'all'
+                  ? 'bg-primary text-black'
+                  : isDark
+                    ? 'bg-white/10 text-white hover:bg-white/20'
+                    : 'bg-white text-slate-900 border border-slate-200 hover:border-slate-300 shadow-sm'
+                }
+              `}
+            >
+              <MapPin className="w-4 h-4" />
+              <span>{selectedCity === 'all' ? 'Выбрать город' : selectedBranch?.name}</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            <AnimatePresence>
+              {showFilterDropdown === 'city' && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  className={`
+                    absolute left-0 top-full mt-2 w-64 rounded-2xl shadow-xl border z-50 overflow-hidden
+                    ${isDark ? 'bg-[#1A1A1A] border-white/10' : 'bg-white border-slate-200'}
+                  `}
+                >
+                  {/* All Cities Option */}
+                  <button
+                    onClick={() => {
+                      setSelectedCity('all');
+                      setShowFilterDropdown(null);
+                    }}
+                    className={`
+                      w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3
+                      ${selectedCity === 'all'
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : isDark
+                          ? 'hover:bg-white/5 text-gray-300'
+                          : 'hover:bg-slate-50 text-slate-600'
+                      }
+                    `}
+                  >
+                    <span className="text-lg">🌍</span>
+                    <div>
+                      <p className="font-medium">Все филиалы</p>
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                        {BRANCHES.length} городов • {BRANCHES.reduce((s, b) => s + b.managersCount, 0)} менеджеров
+                      </p>
+                    </div>
+                  </button>
+
+                  <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`} />
+
+                  {/* Cities List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {BRANCHES.map((branch) => (
+                      <button
+                        key={branch.code}
+                        onClick={() => {
+                          setSelectedCity(branch.code);
+                          setShowFilterDropdown(null);
+                        }}
+                        className={`
+                          w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-3
+                          ${branch.code === selectedCity
+                            ? 'bg-primary/10 text-primary font-medium'
+                            : isDark
+                              ? 'hover:bg-white/5 text-gray-300'
+                              : 'hover:bg-slate-50 text-slate-600'
+                          }
+                        `}
+                      >
+                        <MapPin className={`w-4 h-4 flex-shrink-0 ${branch.code === selectedCity ? 'text-primary' : isDark ? 'text-gray-500' : 'text-slate-400'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{branch.name}</p>
+                          <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                            {branch.managersCount} менедж. • {formatCurrency(branch.monthlyRevenue)}
+                          </p>
+                        </div>
+                        {branch.avgConversion >= 18 && (
+                          <span className="px-1.5 py-0.5 text-xs rounded bg-green-500/10 text-green-500">
+                            {branch.avgConversion}%
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div>
+            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+              {selectedCity !== 'all' ? selectedBranch?.region : t('dashboard.subtitle')}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <DateRangePicker
@@ -494,7 +621,7 @@ export const Dashboard: React.FC = () => {
             isDark={isDark}
           />
           <div className="space-y-3">
-            {MOCK_RECOMMENDATIONS.slice(0, 4).map((rec) => (
+            {cityRecommendations.slice(0, 4).map((rec) => (
               <AIRecommendationCard
                 key={rec.id}
                 recommendation={rec}
@@ -528,7 +655,7 @@ export const Dashboard: React.FC = () => {
             isDark={isDark}
           />
           <div className="space-y-3">
-            {MOCK_MANAGERS.slice(0, 4).map((manager) => (
+            {filteredManagers.slice(0, 4).map((manager) => (
               <ManagerCard key={manager.id} manager={manager} isCompact />
             ))}
           </div>
@@ -553,7 +680,7 @@ export const Dashboard: React.FC = () => {
             isDark={isDark}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {MOCK_LEAD_SOURCES.map((source) => (
+            {cityLeadSources.map((source) => (
               <LeadSourceCard key={source.id} source={source} />
             ))}
           </div>
